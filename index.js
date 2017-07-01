@@ -336,17 +336,33 @@ module.exports = function(mongoose) {
     transporter.sendMail(mailOptions, callback);
   };
 
-  /**
+ /**
    * Send an email to the user requesting confirmation.
    *
    * @func sendConfirmationEmail
    * @param {string} email - the user's email address.
+   * @param [[string, string]] replacers - replace Some Word to Other phrase
    * @param {function} callback - the callback to pass to Nodemailer's transporter
    */
-  var sendConfirmationEmail = function(email, callback) {
+    var sendConfirmationEmail = function(email, replacers, callback) {
     var mailOptions = JSON.parse(JSON.stringify(options.confirmMailOptions));
     mailOptions.to = email;
-    if (!callback) {
+
+    //Replace Other Custom strings
+    RegExp.escape = function(s) {
+	return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+			 };
+    for(var i = 0; i < replacers.length; i++){
+	var replacePair = replacers[i];
+	var r_custom = replacePair[0];
+	var re = new RegExp(RegExp.escape(r_custom),"g");
+	var r = /\$\{UserName\}/g;
+
+	mailOptions.html = mailOptions.html.replace(re, replacePair[1]);
+	mailOptions.text = mailOptions.text.replace(re, replacePair[1]);
+    }
+
+   if (!callback) {
       callback = options.confirmSendMailCallback;
     }
     transporter.sendMail(mailOptions, callback);
@@ -390,7 +406,7 @@ module.exports = function(mongoose) {
             }
 
             if (options.shouldSendConfirmation) {
-              sendConfirmationEmail(savedUser[options.emailFieldName], null);
+		sendConfirmationEmail(savedUser[options.emailFieldName], [], null);
             }
             return callback(null, user);
           });
