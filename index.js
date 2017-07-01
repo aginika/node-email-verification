@@ -303,9 +303,10 @@ module.exports = function(mongoose) {
    * @func sendVerificationEmail
    * @param {string} email - the user's email address.
    * @param {string} url - the unique url generated for the user.
+   * @param [[string, string]] replacers - replace Some Word to Other phrase
    * @param {function} callback - the callback to pass to Nodemailer's transporter
    */
-  var sendVerificationEmail = function(email, url, callback) {
+  var sendVerificationEmail = function(email, url, replacers, callback) {
     var r = /\$\{URL\}/g;
 
     // inject newly-created URL into the email's body and FIRE
@@ -316,6 +317,18 @@ module.exports = function(mongoose) {
     mailOptions.to = email;
     mailOptions.html = mailOptions.html.replace(r, URL);
     mailOptions.text = mailOptions.text.replace(r, URL);
+
+    //Replace Other Custom strings
+    RegExp.escape = function(s) {
+	return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+			 };
+    for(var i = 0; i < replacers.length; i++){
+	var replacePair = replacers[i];
+	var re = new RegExp(RegExp.escape(replacePair[0]),"g");
+
+	mailOptions.html = mailOptions.html.replace(re, replacePair[1]);
+	mailOptions.text = mailOptions.text.replace(re, replacePair[1]);
+    }
 
     if (!callback) {
       callback = options.verifySendMailCallback;
